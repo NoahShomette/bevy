@@ -2863,6 +2863,12 @@ fn create_bin_unpacking_bind_groups(
         else {
             continue;
         };
+        let (Some(instances_buffer), Some(bin_offsets_buffer)) = (
+            view_phase_bin_unpacking_buffers.instances.buffer(),
+            view_phase_bin_unpacking_buffers.bin_offsets.buffer(),
+        ) else {
+            continue;
+        };
 
         // Fetch the work item buffers.
         let maybe_indexed_work_item_buffer = match *work_item_buffers {
@@ -2891,6 +2897,8 @@ fn create_bin_unpacking_bind_groups(
                                 pipeline_cache,
                                 job,
                                 bin_unpacking_metadata_buffer,
+                                instances_buffer,
+                                bin_offsets_buffer,
                                 indexed_work_item_buffer,
                                 true,
                             )
@@ -2909,6 +2917,8 @@ fn create_bin_unpacking_bind_groups(
                                 pipeline_cache,
                                 job,
                                 bin_unpacking_metadata_buffer,
+                                instances_buffer,
+                                bin_offsets_buffer,
                                 non_indexed_work_item_buffer,
                                 false,
                             )
@@ -2929,6 +2939,8 @@ fn create_bin_unpacking_bind_group(
     pipeline_cache: &PipelineCache,
     job: &BinUnpackingJob,
     bin_unpacking_metadata_buffer: &Buffer,
+    instances_buffer: &Buffer,
+    bin_offsets_buffer: &Buffer,
     work_item_buffer: &Buffer,
     indexed: bool,
 ) -> ViewPhaseBinUnpackingBindGroup {
@@ -2952,7 +2964,11 @@ fn create_bin_unpacking_bind_group(
             // @group(0) @binding(1) var<storage>
             // binned_mesh_instances:
             // array<BinnedMeshInstance>;
-            job.render_binned_mesh_instance_buffer.as_entire_binding(),
+            BindingResource::Buffer(BufferBinding {
+                buffer: instances_buffer,
+                offset: job.instances_range.start,
+                size: NonZeroU64::new(job.instances_range.end - job.instances_range.start),
+            }),
             // @group(0) @binding(2) var<storage,
             // read_write> preprocess_work_items:
             // array<PreprocessWorkItem>;
@@ -2960,8 +2976,11 @@ fn create_bin_unpacking_bind_group(
             // @group(0) @binding(3) var<storage>
             // bin_index_to_indirect_parameters_offset:
             // array<u32>;
-            job.bin_index_to_indirect_parameters_offset_buffer
-                .as_entire_binding(),
+            BindingResource::Buffer(BufferBinding {
+                buffer: bin_offsets_buffer,
+                offset: job.bin_offsets_range.start,
+                size: NonZeroU64::new(job.bin_offsets_range.end - job.bin_offsets_range.start),
+            }),
         )),
     );
     ViewPhaseBinUnpackingBindGroup {

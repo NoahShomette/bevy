@@ -614,6 +614,12 @@ impl Archetype {
         self.entities.reserve(additional);
     }
 
+    /// Shrinks the capacity of the archetype's entity list with a lower bound.
+    #[inline]
+    pub(crate) fn shrink_to(&mut self, min_capacity: usize) {
+        self.entities.shrink_to(min_capacity);
+    }
+
     /// Removes the entity at `row` by swapping it out. Returns the table row the entity is stored
     /// in.
     ///
